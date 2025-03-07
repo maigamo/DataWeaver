@@ -1,0 +1,12 @@
+uvicorn==0.28.0
+gunicorn==21.2.0
+sqlalchemy==2.0.38
+pandas==2.2.3
+python-jose==3.3.0
+python-multipart==0.0.9
+openpyxl==3.1.5
+pydantic==2.6.4
+typing-extensions==4.12.2
+python-dateutil==2.9.0.post0
+pytz==2025.1
+tzdata==2025.1
