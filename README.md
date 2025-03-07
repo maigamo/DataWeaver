@@ -72,7 +72,7 @@ docker run -d -p 8000:8000 -p 5173:5173 dataweaver
 
 1. 克隆项目：
 ```bash
-git clone https://github.com/yourusername/DataWeaver.git
+git clone https://github.com/maigamo/DataWeaver.git
 cd DataWeaver
 ```
 
