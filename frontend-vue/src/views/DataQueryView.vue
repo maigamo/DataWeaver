@@ -29,11 +29,11 @@
           <el-form-item label="操作类型">
             <el-select v-model="queryParams.operationType" placeholder="选择操作类型">
               <el-option label="全部" value="" />
-              <el-option label="登录" value="login" />
-              <el-option label="下载文件" value="download" />
-              <el-option label="生成SQL" value="generate" />
-              <el-option label="上传文件" value="upload" />
-              <el-option label="系统配置" value="config" />
+              <el-option label="登录成功" value="登录成功" />
+              <el-option label="下载文件" value="下载文件" />
+              <el-option label="生成SQL脚本" value="生成SQL脚本" />
+              <el-option label="上传资源" value="上传资源" />
+              <el-option label="查询资源列表" value="查询资源列表" />
             </el-select>
           </el-form-item>
           <el-form-item>

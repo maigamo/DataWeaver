@@ -194,3 +194,133 @@ async def get_download_statistics(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 获取用户行为统计数据
+@router.get("/statistics/behavior")
+async def get_behavior_statistics(
+    time_range: str = Query(..., description="时间范围，可选值：7/30/90"),
+    current_user: dict = Depends(get_current_user)
+):
+    # 检查权限
+    if current_user["role"] not in [UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以查看统计信息"
+        )
+    
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        # 计算时间范围
+        days = int(time_range)
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # 按小时统计操作次数
+        hour_query = """
+            SELECT 
+                strftime('%H', created_at) as hour,
+                COUNT(*) as count
+            FROM user_operation_logs
+            WHERE date(created_at) >= date(?)
+            GROUP BY hour
+            ORDER BY hour
+        """
+        cursor.execute(hour_query, (start_date,))
+        hourly_stats = [dict(row) for row in cursor.fetchall()]
+        
+        # 按星期统计操作次数
+        weekday_query = """
+            SELECT 
+                strftime('%w', created_at) as weekday,
+                COUNT(*) as count
+            FROM user_operation_logs
+            WHERE date(created_at) >= date(?)
+            GROUP BY weekday
+            ORDER BY weekday
+        """
+        cursor.execute(weekday_query, (start_date,))
+        weekday_stats = [dict(row) for row in cursor.fetchall()]
+        
+        # 格式化结果
+        hours = {f"{h:02d}": 0 for h in range(24)}
+        weekdays = {str(w): 0 for w in range(7)}
+        
+        for stat in hourly_stats:
+            # 确保小时格式为两位数
+            hour_key = f"{int(stat['hour']):02d}"
+            hours[hour_key] = stat['count']
+        
+        for stat in weekday_stats:
+            weekdays[stat['weekday']] = stat['count']
+        
+        return {
+            "hourly": [{'hour': h, 'count': c} for h, c in hours.items()],
+            "weekday": [{'weekday': w, 'count': c} for w, c in weekdays.items()]
+        }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/statistics/download")
+async def get_download_statistics(
+    time_range: str = Query(..., description="时间范围，可选值：7/30/90/monthly"),
+    current_user: dict = Depends(get_current_user)
+):
+    # 检查权限
+    if current_user["role"] not in [UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以查看统计信息"
+        )
+    
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        if time_range == "monthly":
+            # 按月统计
+            query = """
+                SELECT month, SUM(count) as count FROM (
+                    SELECT strftime('%Y-%m', downloaded_at) as month, COUNT(*) as count 
+                    FROM download_logs 
+                    GROUP BY month
+                    UNION ALL
+                    SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count 
+                    FROM resource_download_logs 
+                    GROUP BY month
+                ) 
+                GROUP BY month 
+                ORDER BY month DESC
+                LIMIT 12
+            """
+            cursor.execute(query)
+            results = cursor.fetchall()
+            return {"monthly": [dict(row) for row in results]}
+        else:
+            # 按天统计
+            days = int(time_range)
+            query = """
+                SELECT date, SUM(count) as count FROM (
+                    SELECT date(downloaded_at) as date, COUNT(*) as count 
+                    FROM download_logs 
+                    WHERE date(downloaded_at) >= date(?)
+                    GROUP BY date
+                    UNION ALL
+                    SELECT date(created_at) as date, COUNT(*) as count 
+                    FROM resource_download_logs 
+                    WHERE date(created_at) >= date(?)
+                    GROUP BY date
+                ) 
+                GROUP BY date 
+                ORDER BY date DESC
+            """
+            date_param = datetime.now() - timedelta(days=days)
+            cursor.execute(query, (date_param, date_param))
+            results = cursor.fetchall()
+            return {"daily": [dict(row) for row in results]}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

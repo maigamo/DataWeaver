@@ -80,6 +80,27 @@
           </div>
           <div class="chart-container" ref="downloadTrendChartRef"></div>
         </div>
+
+        <div class="chart-section">
+          <h2>用户行为分析</h2>
+          <div class="chart-filter">
+            <el-radio-group v-model="behaviorTimeRange" @change="handleBehaviorRangeChange">
+              <el-radio-button label="7">最近7天</el-radio-button>
+              <el-radio-button label="30">最近30天</el-radio-button>
+              <el-radio-button label="90">最近90天</el-radio-button>
+            </el-radio-group>
+          </div>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <h3>日内使用频率分布</h3>
+              <div class="chart-container" ref="dailyHeatmapRef"></div>
+            </el-col>
+            <el-col :span="12">
+              <h3>周内使用频率分布</h3>
+              <div class="chart-container" ref="weeklyHeatmapRef"></div>
+            </el-col>
+          </el-row>
+        </div>
       </div>
     </el-card>
   </div>
@@ -95,13 +116,18 @@ import apiClient from '../api/config'
 const trendChartRef = ref<HTMLElement | null>(null)
 const templateChartRef = ref<HTMLElement | null>(null)
 const downloadTrendChartRef = ref<HTMLElement | null>(null)
+const dailyHeatmapRef = ref<HTMLElement | null>(null)
+const weeklyHeatmapRef = ref<HTMLElement | null>(null)
 let trendChart: echarts.ECharts | null = null
 let templateChart: echarts.ECharts | null = null
 let downloadTrendChart: echarts.ECharts | null = null
+let dailyHeatmapChart: echarts.ECharts | null = null
+let weeklyHeatmapChart: echarts.ECharts | null = null
 
 // 默认显示最近7天的数据
 const trendTimeRange = ref('7')
 const downloadTimeRange = ref('7')
+const behaviorTimeRange = ref('7')
 
 interface TemplateData {
   template_name: string
@@ -125,12 +151,179 @@ const downloadTrendData = reactive({
   counts: [] as number[]
 })
 
+const behaviorData = reactive({
+  dailyHeatmap: [] as Array<[number, number, number]>,
+  weeklyHeatmap: [] as Array<[number, number, number]>
+})
+
 const handleTrendRangeChange = (value: string) => {
   fetchTrendData(value)
 }
 
 const handleDownloadRangeChange = (value: string) => {
   fetchDownloadData(value)
+}
+
+const handleBehaviorRangeChange = (value: string) => {
+  fetchBehaviorData(value)
+}
+
+const fetchBehaviorData = async (timeRange: string) => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      ElMessage.error('未登录或会话已过期')
+      return
+    }
+
+    const params = { time_range: timeRange }
+    const response = await apiClient.get('/statistics/behavior', {
+      headers: { Authorization: `Bearer ${token}` },
+      params
+    })
+
+    // 处理日内热力图数据
+    if (response.data.hourly) {
+      behaviorData.dailyHeatmap = response.data.hourly.map((item: any) => [
+        parseInt(item.hour),
+        0, // 固定为0，表示只有一行数据
+        item.count
+      ])
+    }
+
+    // 处理周内热力图数据
+    if (response.data.weekday) {
+      behaviorData.weeklyHeatmap = response.data.weekday.map((item: any) => [
+        parseInt(item.weekday), // 星期（0-6）
+        0, // 固定为0，表示只有一行数据
+        item.count
+      ])
+    }
+
+    initDailyHeatmap()
+    initWeeklyHeatmap()
+  } catch (error) {
+    ElMessage.error('获取用户行为数据失败')
+    console.error('获取用户行为数据失败:', error)
+  }
+}
+
+const initDailyHeatmap = () => {
+  if (dailyHeatmapRef.value) {
+    dailyHeatmapChart = echarts.init(dailyHeatmapRef.value)
+    
+    const hours = Array.from({length: 24}, (_, i) => i + '时')
+    const option = {
+      tooltip: {
+        position: 'top',
+        formatter: (params: any) => {
+          return `${params.data[0]}时: ${params.data[2]}次`
+        }
+      },
+      grid: {
+        top: '10%',
+        bottom: '10%'
+      },
+      xAxis: {
+        type: 'category',
+        data: hours,
+        splitArea: {
+          show: true
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: ['使用频率'],
+        splitArea: {
+          show: true
+        }
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...behaviorData.dailyHeatmap.map(item => item[2])),
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '0%'
+      },
+      series: [{
+        name: '使用频率',
+        type: 'heatmap',
+        data: behaviorData.dailyHeatmap,
+        label: {
+          show: true
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }]
+    }
+    
+    dailyHeatmapChart.setOption(option)
+  }
+}
+
+const initWeeklyHeatmap = () => {
+  if (weeklyHeatmapRef.value) {
+    weeklyHeatmapChart = echarts.init(weeklyHeatmapRef.value)
+    
+    const hours = Array.from({length: 24}, (_, i) => i + '时')
+    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    
+    const option = {
+      tooltip: {
+        position: 'top',
+        formatter: (params: any) => {
+          return `${days[params.data[0]]} ${params.data[1]}时: ${params.data[2]}次`
+        }
+      },
+      grid: {
+        top: '10%',
+        bottom: '10%'
+      },
+      xAxis: {
+        type: 'category',
+        data: hours,
+        splitArea: {
+          show: true
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: days,
+        splitArea: {
+          show: true
+        }
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...behaviorData.weeklyHeatmap.map(item => item[2])),
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '0%'
+      },
+      series: [{
+        name: '使用频率',
+        type: 'heatmap',
+        data: behaviorData.weeklyHeatmap,
+        label: {
+          show: true
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }]
+    }
+    
+    weeklyHeatmapChart.setOption(option)
+  }
 }
 
 const fetchStatistics = async () => {
@@ -392,12 +585,15 @@ const initDownloadTrendChart = (data: any) => {
 
 onMounted(() => {
   fetchStatistics()
+  fetchBehaviorData(behaviorTimeRange.value)
   
   // 窗口大小变化时重新调整图表大小
   window.addEventListener('resize', () => {
     trendChart?.resize()
     templateChart?.resize()
     downloadTrendChart?.resize()
+    dailyHeatmapChart?.resize()
+    weeklyHeatmapChart?.resize()
   })
 })
 </script>
