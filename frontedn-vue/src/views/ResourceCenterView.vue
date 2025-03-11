@@ -37,9 +37,9 @@
         <el-table-column prop="resource_name" label="资源名称" min-width="500">
           <template #default="{row}">
             <el-tooltip :content="row.resource_name" placement="top" :show-after="500">
-              <div class="resource-name-container">
-                <span class="resource-name">{{ row.resource_name }}</span>
-                <el-tag size="small" type="info" style="margin-left: 8px">
+              <div class="resource-name-container" style="width: 100%">
+                <span class="resource-name" style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ row.resource_name }}</span>
+                <el-tag size="small" type="info" style="margin-left: 8px; flex-shrink: 0;">
                   {{ new Date(row.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }}
                 </el-tag>
               </div>
@@ -726,15 +726,9 @@ onMounted(() => {
 }
 
 .resource-name {
-  flex: 1;
+  max-width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.resource-name-container {
-  display: flex;
-  align-items: center;
-  width: 100%;
 }
 </style>

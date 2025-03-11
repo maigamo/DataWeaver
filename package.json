@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@types/echarts": "^4.9.22",
-    "echarts": "^5.6.0"
-  }
-}

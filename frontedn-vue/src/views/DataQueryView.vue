@@ -62,19 +62,7 @@
         <el-table-column prop="operation_type" label="操作类型" width="120" />
         <el-table-column prop="operation_time" label="操作时间" width="180" />
         <el-table-column prop="username" label="操作用户" width="120" />
-        <el-table-column prop="file_name" label="操作描述" min-width="400">
-          <template #default="{ row }">
-            <el-tooltip
-              class="box-item"
-              effect="dark"
-              :content="row.file_name"
-              placement="top-start"
-              :show-after="500"
-            >
-              <span class="file-name-cell">{{ row.file_name }}</span>
-            </el-tooltip>
-          </template>
-        </el-table-column>
+        <el-table-column prop="file_name" label="操作描述" />
         <el-table-column label="状态" width="100">
           <template #default="_">
             <el-tag type="success">成功</el-tag>
@@ -307,13 +295,5 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
-}
-
-.file-name-cell {
-  display: inline-block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 </style>

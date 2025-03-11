@@ -36,7 +36,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Setting } from '@element-plus/icons-vue'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/stores/user.ts'
 import type { SystemConfig } from '@/types'
 
 const userStore = useUserStore()

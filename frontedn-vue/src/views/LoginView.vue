@@ -128,7 +128,7 @@ const handleLogin = async () => {
       formData.append('username', loginForm.username)
       formData.append('password', loginForm.password)
       
-      const response = await apiClient.post('/token', formData, {
+      const response = await apiClient.post('token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
