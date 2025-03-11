@@ -34,7 +34,7 @@
         v-loading="loading"
         border
       >
-        <el-table-column prop="resource_name" label="资源名称" min-width="300">
+        <el-table-column prop="resource_name" label="资源名称" min-width="500">
           <template #default="{row}">
             <el-tooltip :content="row.resource_name" placement="top" :show-after="500">
               <div class="resource-name-container">
@@ -47,7 +47,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="creator_name" label="上传者" width="120" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
         <el-table-column label="文件大小" width="120">
           <template #default="{row}">
             {{ formatFileSize(row.file_size) }}
@@ -727,9 +726,15 @@ onMounted(() => {
 }
 
 .resource-name {
-  max-width: 220px;
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.resource-name-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 </style>

@@ -65,7 +65,7 @@ docker build -t dataweaver .
 
 2. 运行容器：
 ```bash
-docker run -d -p 8000:8000 -p 5173:5173 dataweaver
+docker run -d -p 10010:10010 -p 10086:10086 dataweaver
 ```
 
 ### 手动部署
@@ -89,6 +89,7 @@ npm install
 3. 构建前端：
 ```bash
 cd frontend-vue
+npm install
 npm run build
 ```
 
@@ -136,7 +137,7 @@ After=network.target
 [Service]
 User=your_user
 WorkingDirectory=/path/to/DataWeaver
-ExecStart=/usr/bin/python3 app.py
+ExecStart=gunicorn -c gunicorn_config.py app:app
 Restart=always
 
 [Install]
@@ -151,16 +152,18 @@ sudo systemctl start dataweaver
 
 ## 端口配置
 
-### 前端端口修改
+### 前端配置
 
-在 `frontend-vue/vite.config.ts` 中添加：
+前端服务配置位于 `frontend-vue/vite.config.ts` 文件中：
+
 ```typescript
 export default defineConfig({
   server: {
-    port: 10086,
+    host: '0.0.0.0',  // 允许外部访问
+    port: 10086,      // 前端服务端口
     proxy: {
       '/api': {
-        target: 'http://localhost:10010',
+        target: process.env.VITE_API_PROXY_URL || 'http://localhost:10010',  // 后端服务地址
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
@@ -170,13 +173,38 @@ export default defineConfig({
 })
 ```
 
-### 后端端口修改
+配置说明：
+- `host: '0.0.0.0'`：允许从任意IP地址访问前端服务
+- `port: 10086`：前端服务端口号，可根据需要修改
+- `target`：后端服务地址，支持通过环境变量`VITE_API_PROXY_URL`配置，默认为`http://localhost:10010`
 
-在 `app.py` 中修改：
+### 后端端口配置
+
+后端服务的端口配置有多种方式：
+
+1. 直接在`app.py`中修改（开发环境）：
 ```python
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=10010, reload=True)
+```
+
+2. 使用命令行参数指定（推荐）：
+```bash
+# 使用uvicorn启动时
+uvicorn app:app --host 0.0.0.0 --port 10010
+
+# 使用gunicorn启动时，在gunicorn_config.py中修改
+bind = "0.0.0.0:10010"
+```
+
+3. 使用环境变量（生产环境推荐）：
+```bash
+# Linux/macOS
+export PORT=10010
+
+# Windows PowerShell
+$env:PORT=10010
 ```
 
 ### 前端接口配置
